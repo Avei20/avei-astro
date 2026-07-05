@@ -1,0 +1,8 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ChatApp from "../../components/chat/ChatApp.vue";
+---
+
+<Layout title="Avei Gemini">
+  <ChatApp client:only="vue" />
+</Layout>

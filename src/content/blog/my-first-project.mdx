@@ -1,0 +1,18 @@
+---
+title: "My First Project"
+description: "Building an interactive graph demo with sigma.js and graphology."
+pubDate: 2026-06-20
+tags: ["graph", "sigma", "demo"]
+---
+
+The first interactive thing I wanted on this site was a graph. Not data viz with
+a chart library — a real, draggable node graph you can throw around.
+
+I went with [sigma.js](https://www.sigmajs.org/) for rendering and
+[graphology](https://graphology.github.io/) for the data model. Sigma draws to a
+canvas and graphology gives you a clean API for nodes and edges. Together they
+handle force-directed layouts without fighting you.
+
+It runs as a Vue island with `client:only` — the canvas only exists in the
+browser, so there's nothing to render on the server. The graph starts empty;
+that's intentional.

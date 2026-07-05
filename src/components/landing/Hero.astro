@@ -1,0 +1,206 @@
+---
+import avatar from "../../assets/avei.jpg";
+
+interface Props {
+    id?: string;
+    name?: string;
+    role?: string;
+    location?: string;
+    email?: string;
+    linkedin?: string;
+    github?: string;
+    website?: string;
+    avatarSrc?: string;
+}
+
+const {
+    id,
+    name = "Muhammad Abdul Aziz Al-Ghofari",
+    role = "Backend engineer building cost-efficient cloud systems, observability, and AI products.",
+    location = "Jakarta, Indonesia",
+    email = "muhammadabdulazizalghofari@gmail.com",
+    linkedin = "https://linkedin.com/in/avei",
+    github = "https://github.com/Avei20",
+    website = "https://avei.ovh",
+    avatarSrc = avatar.src,
+} = Astro.props;
+---
+
+<header class="hero" id={id}>
+    <img
+        class="avatar"
+        src={avatarSrc}
+        alt={`${name} avatar`}
+        width="96"
+        height="96"
+    />
+    <h1>{name}</h1>
+    <p class="role">{role}</p>
+    <p class="loc">Open to collaborations · {location}</p>
+    <nav class="cta-row" aria-label="Primary contact">
+        <a class="btn btn-filled" href={`mailto:${email}`}>
+            <span class="material-symbols-outlined icon-lead" aria-hidden="true"
+                >mail</span
+            >
+            Email me
+            <span
+                class="material-symbols-outlined icon-trail"
+                aria-hidden="true">arrow_forward</span
+            >
+        </a>
+        <a
+            class="btn btn-outlined"
+            href={github}
+            rel="noopener noreferrer"
+            aria-label="GitHub profile">GitHub</a
+        >
+        <a
+            class="btn btn-outlined"
+            href={linkedin}
+            rel="noopener noreferrer"
+            aria-label="LinkedIn profile">LinkedIn</a
+        >
+        <a
+            class="btn btn-outlined"
+            href={website}
+            rel="noopener noreferrer"
+            aria-label="Personal website"
+        >
+            Website
+            <span
+                class="material-symbols-outlined icon-trail"
+                aria-hidden="true">open_in_new</span
+            >
+        </a>
+        <a class="btn btn-outlined" href="#timeline" aria-label="See timeline">
+            See timeline
+            <span
+                class="material-symbols-outlined icon-trail"
+                aria-hidden="true">arrow_downward</span
+            >
+        </a>
+    </nav>
+</header>
+
+<style>
+    .hero {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    .avatar {
+        width: 96px;
+        height: 96px;
+        border-radius: var(--md-sys-shape-corner-full);
+        object-fit: cover;
+        border: 1px solid var(--md-sys-color-outline-variant);
+    }
+    h1 {
+        font-family: var(--md-ref-typeface-brand);
+        font-weight: 600;
+        font-size: var(--font-headline-lg);
+        line-height: 1.1;
+        letter-spacing: -0.015em;
+        color: var(--md-sys-color-on-surface);
+        margin: 1rem 0 0;
+        width: 100%;
+        max-width: none;
+    }
+    .role {
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: var(--font-body-lg);
+        line-height: 1.45;
+        margin: 0.5rem 0 0;
+        max-width: 52ch;
+    }
+    .loc {
+        color: var(--md-sys-color-on-surface-variant);
+        font-family: var(--md-ref-typeface-mono);
+        font-size: var(--font-label-md);
+        margin: 0.75rem 0 0;
+    }
+    .cta-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+        margin-top: 1.5rem;
+    }
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        height: 40px;
+        padding: 0 1.5rem;
+        border-radius: var(--md-sys-shape-corner-full);
+        font-family: var(--md-ref-typeface-brand);
+        font-size: var(--font-label-lg);
+        font-weight: 500;
+        line-height: 1;
+        text-decoration: none;
+        white-space: nowrap;
+        transition:
+            background-color 200ms ease-out,
+            border-color 200ms ease-out,
+            color 200ms ease-out,
+            box-shadow 200ms ease-out,
+            transform 200ms ease-out;
+    }
+    .btn .material-symbols-outlined {
+        font-size: 1.125em;
+        vertical-align: -0.15em;
+    }
+    .btn-filled {
+        background: var(--ink);
+        color: var(--md-sys-color-on-primary);
+        border: 1px solid var(--ink);
+    }
+    .btn-filled:hover {
+        background: var(--ink-2);
+        box-shadow: var(--md-sys-elevation-1);
+    }
+    .btn-filled:active {
+        background: var(--ink-3);
+        box-shadow: var(--md-sys-elevation-2);
+    }
+    .btn-outlined {
+        position: relative;
+        background: transparent;
+        color: var(--ink);
+        border: 1px solid var(--ink);
+    }
+    .btn-outlined::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: currentColor;
+        opacity: 0;
+        transition: opacity 200ms;
+        pointer-events: none;
+    }
+    .btn-outlined:hover {
+        background: var(--ink);
+        color: var(--paper);
+        box-shadow: var(--md-sys-elevation-1);
+    }
+    .btn-outlined:hover::before {
+        opacity: 0.04;
+    }
+    .btn-outlined:active {
+        background: var(--ink-2);
+        box-shadow: var(--md-sys-elevation-2);
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .btn,
+        .btn::before {
+            transition: none;
+        }
+        .btn-outlined:hover,
+        .btn-filled:hover {
+            transform: none;
+        }
+    }
+</style>

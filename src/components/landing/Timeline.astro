@@ -1,0 +1,893 @@
+---
+import { timeline, PRESENT, type TimelineEntry } from "../../data/timeline";
+
+interface Props {
+    entries?: TimelineEntry[];
+}
+
+const { entries = timeline } = Astro.props;
+
+// ---------- helpers ----------
+const toDate = (d: { year: number; month?: number }): Date =>
+    new Date(d.year, (d.month ?? 1) - 1, 1);
+const presentDate = toDate(PRESENT);
+const endDate = (e: TimelineEntry): Date =>
+    e.end === "present" ? presentDate : toDate(e.end);
+const monthLabel = (d: { year: number; month?: number; day?: number }): string => {
+    if (d.month == null) return `${d.year}`;
+    const dateObj = new Date(d.year, d.month - 1, d.day ?? 1);
+    if (d.day != null) {
+        return dateObj.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+    }
+    return dateObj.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+};
+
+// ---------- sort ascending by start (for column packing) ----------
+const sorted: TimelineEntry[] = entries
+    .map((e) => ({ ...e }))
+    .sort((a, b) => toDate(a.start).getTime() - toDate(b.start).getTime());
+
+// ---------- assign a unique column index to each entry to prevent line reuse ----------
+sorted.forEach((e, idx) => {
+    (e as TimelineEntry & { column: number }).column = idx;
+});
+const totalColumns = sorted.length;
+
+// ---------- compile milestones and sort descending (newest at the top) ----------
+type MLabel = {
+    id: string;
+    column: number;
+    y: number;
+    date: { year: number; month?: number; day?: number };
+    text: string;
+    tags: string[];
+    links: { label: string; url: string }[];
+    kind: string;
+    entryTitle: string;
+    entrySubtitle: string;
+};
+const milestones: MLabel[] = sorted.flatMap((e) => {
+    const col = (e as TimelineEntry & { column: number }).column;
+    return e.milestones.map((m, idx) => ({
+        id: `${e.id}-m${idx}`,
+        column: col,
+        y: toDate(m.date).getTime(), // temp store time for sorting
+        date: m.date,
+        text: m.text,
+        tags: m.tags ?? [],
+        links: m.links ?? [],
+        kind: e.kind,
+        entryTitle: e.title,
+        entrySubtitle: e.subtitle,
+    }));
+});
+
+// Sort descending by month, but ascending by day within the same month
+const sortedMilestones = [...milestones].sort((a, b) => {
+    if (a.date.year !== b.date.year) {
+        return b.date.year - a.date.year;
+    }
+    const am = a.date.month ?? 1;
+    const bm = b.date.month ?? 1;
+    if (am !== bm) {
+        return bm - am;
+    }
+    const ad = a.date.day ?? 1;
+    const bd = b.date.day ?? 1;
+    return ad - bd;
+});
+
+// ---------- helper to check if a column is active at a given date ----------
+const isColumnActiveAt = (colIndex: number, milestoneDate: { year: number; month?: number }): boolean => {
+    const d = toDate(milestoneDate);
+    return sorted.some((e) => {
+        const col = (e as TimelineEntry & { column: number }).column;
+        return col === colIndex && toDate(e.start) <= d && d <= endDate(e);
+    });
+};
+
+const getActiveEntryAt = (colIndex: number, milestoneDate: { year: number; month?: number }): TimelineEntry | undefined => {
+    const d = toDate(milestoneDate);
+    return sorted.find((e) => {
+        const col = (e as TimelineEntry & { column: number }).column;
+        return col === colIndex && toDate(e.start) <= d && d <= endDate(e);
+    });
+};
+// ---------- default initial active filters and packing helpers ----------
+const defaultKinds = ['work', 'project'];
+const getInitialActiveColIdx = (colIndex: number): number => {
+    let activeIdx = 0;
+    for (let i = 0; i < colIndex; i++) {
+        if (defaultKinds.includes(sorted[i].kind)) {
+            activeIdx++;
+        }
+    }
+    return activeIdx;
+};
+const isColumnInitiallyActive = (colIndex: number): boolean => {
+    return defaultKinds.includes(sorted[colIndex].kind);
+};
+const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kind)).length;
+---
+
+<section class="timeline-section" id="timeline">
+    <header class="timeline-header">
+        <h2 class="timeline-title">My Journey</h2>
+        <p class="timeline-subtitle">
+            Parallel active tracks and milestones, ordered from current → 2019.
+        </p>
+        <div class="timeline-filters">
+            <span class="filter-label">Preference Filters:</span>
+            <button class="filter-chip active" data-kind="work">Professional Experience</button>
+            <button class="filter-chip active" data-kind="project">Side Projects</button>
+            <button class="filter-chip" data-kind="community">Community Leadership</button>
+            <button class="filter-chip" data-kind="education">Education & Camps</button>
+            <button class="filter-chip" data-kind="volunteer">Volunteering</button>
+        </div>
+    </header>
+
+    <div class="timeline-wrapper">
+        <!-- Column Tags Header Row (Desktop Only) -->
+        <div class="timeline-row headers-row">
+            <div class="timeline-lanes header-lanes" style={`--total-columns: ${totalColumns}; --active-total-columns: ${initialActiveTotalColumns};`}>
+                {
+                    sorted.map((e, i) => {
+                        const isActive = isColumnInitiallyActive(i);
+                        const activeIdx = getInitialActiveColIdx(i);
+                        return (
+                            <div 
+                                class="column-header" 
+                                style={`--col-idx: ${i}; --active-col-idx: ${activeIdx}; ${isActive ? "" : "opacity: 0; pointer-events: none;"}`} 
+                                data-col-idx={i}
+                            >
+                                <span class="column-header-text" title={`${e.title} — ${e.subtitle}`}>{e.shortName}</span>
+                            </div>
+                        );
+                    })
+                }
+            </div>
+            <div class="timeline-content header-content"></div>
+        </div>
+
+        {
+            sortedMilestones.map((m, idx) => {
+                const mDate = toDate(m.date);
+                const prev = sortedMilestones[idx - 1];
+                const next = sortedMilestones[idx + 1];
+                const showDate = !prev || 
+                                 prev.date.year !== m.date.year || 
+                                 prev.date.month !== m.date.month ||
+                                 m.date.day !== undefined ||
+                                 prev.date.day !== undefined;
+                const isLastInMonth = !next || 
+                                      next.date.year !== m.date.year || 
+                                      next.date.month !== m.date.month ||
+                                      m.date.day !== undefined ||
+                                      next.date.day !== undefined;
+                return (
+                    <div 
+                        class:list={["timeline-row", !showDate && "same-month-row"]} 
+                        data-kind={m.kind} 
+                        data-col-idx={m.column}
+                        data-year={m.date.year}
+                        data-month={m.date.month ?? ""}
+                        data-day={m.date.day ?? ""}
+                        style={defaultKinds.includes(m.kind) ? "" : "display: none;"}
+                    >
+                        <!-- Left: Branch Lanes column -->
+                        <div class="timeline-lanes" style={`--total-columns: ${totalColumns}; --active-total-columns: ${initialActiveTotalColumns};`}>
+                            {
+                                Array.from({ length: totalColumns }).map((_, i) => {
+                                    const activeEntry = getActiveEntryAt(i, m.date);
+                                    const activeTitle = activeEntry ? `${activeEntry.title} — ${activeEntry.subtitle}` : undefined;
+                                    const isActive = isColumnInitiallyActive(i);
+                                    const activeIdx = getInitialActiveColIdx(i);
+                                    return (
+                                        <>
+                                            {activeEntry && (
+                                                <div 
+                                                    class="lane-line" 
+                                                    style={`--col-idx: ${i}; --active-col-idx: ${activeIdx}; ${isActive ? "" : "opacity: 0; pointer-events: none;"}`} 
+                                                    title={activeTitle}
+                                                    data-col-idx={i}
+                                                />
+                                            )}
+                                            {i === m.column && (
+                                                <>
+                                                    <div 
+                                                        class="lane-dot" 
+                                                        style={`--col-idx: ${i}; --active-col-idx: ${activeIdx}; ${isActive ? "" : "opacity: 0; pointer-events: none;"}`} 
+                                                        title={activeTitle}
+                                                        data-col-idx={i}
+                                                    />
+                                                    <div 
+                                                        class="lane-connector" 
+                                                        style={`--col-idx: ${i}; --active-col-idx: ${activeIdx}; ${isActive ? "" : "opacity: 0; pointer-events: none;"}`} 
+                                                        title={activeTitle}
+                                                        data-col-idx={i}
+                                                    />
+                                                </>
+                                            )}
+                                        </>
+                                    );
+                                })
+                            }
+                        </div>
+
+                        <!-- Right: Milestone Content Card -->
+                        <div class="timeline-content" style={isLastInMonth ? "" : "border-bottom: none;"}>
+                            <div class="milestone-main">
+                                <time class="milestone-date" style={showDate ? "" : "visibility: hidden;"}>{monthLabel(m.date)}</time>
+                                <span class="milestone-text">{m.text}</span>
+                            </div>
+                            
+                            <div class="milestone-meta">
+                                <span class="milestone-context">
+                                    {m.entryTitle} · <span class="subtitle-text">{m.entrySubtitle}</span>
+                                </span>
+                                <div class="milestone-actions">
+                                    {m.links.length > 0 && (
+                                        <div class="milestone-links-wrapper">
+                                            {m.links.map((l) => (
+                                                <a class="link-badge" href={l.url} target="_blank" rel="noopener noreferrer">{l.label} ↗</a>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {m.tags.length > 0 && (
+                                        <div class="milestone-tags-wrapper">
+                                            {m.tags.map((t) => (
+                                                <span class="tag-badge">{t}</span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })
+        }
+    </div>
+
+    <script define:vars={{ columnKinds: sorted.map(e => e.kind), columnIds: sorted.map(e => e.id), columnParents: sorted.map(e => e.parentId) }}>
+        (() => {
+            const wrapper = document.querySelector('.timeline-wrapper');
+            if (!wrapper) return;
+            const rows = document.querySelectorAll('.timeline-row:not(.headers-row)');
+            const laneElements = document.querySelectorAll('.lane-line, .lane-dot, .lane-connector');
+            const headers = document.querySelectorAll('.column-header');
+            const lanesWrappers = document.querySelectorAll('.timeline-lanes');
+            const filterChips = document.querySelectorAll('.filter-chip');
+
+            let activeKinds = new Set(['work', 'project']);
+
+            const updateFilters = () => {
+                // 1. Determine active columns and compute packed indexes
+                let activeColCount = 0;
+                const activeColMap = {}; // colIdx -> activeColIdx
+
+                columnKinds.forEach((kind, i) => {
+                    const isActive = activeKinds.has(kind);
+                    if (isActive) {
+                        activeColMap[i] = activeColCount;
+                        activeColCount++;
+                    }
+                });
+
+                // 2. Update lanes wrappers total columns variable
+                lanesWrappers.forEach(w => {
+                    w.style.setProperty('--active-total-columns', activeColCount);
+                });
+
+                // 3. Update visibility and offsets of lane elements and headers
+                const allColElements = document.querySelectorAll('.lane-line, .lane-dot, .lane-connector, .column-header');
+                allColElements.forEach(el => {
+                    const colIdx = parseInt(el.getAttribute('data-col-idx'), 10);
+                    const kind = columnKinds[colIdx];
+                    const isActive = activeKinds.has(kind);
+
+                    if (isActive) {
+                        el.style.opacity = '1';
+                        el.style.pointerEvents = 'auto';
+                        el.style.setProperty('--active-col-idx', activeColMap[colIdx]);
+                    } else {
+                        el.style.opacity = '0';
+                        el.style.pointerEvents = 'none';
+                    }
+                });
+
+                // 4. Update row visibility
+                rows.forEach(row => {
+                    const kind = row.getAttribute('data-kind');
+                    if (activeKinds.has(kind)) {
+                        row.style.display = 'flex';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                // 5. Update dynamic date labels and same-month styling on visible rows
+                const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
+                visibleRows.forEach((row, i) => {
+                    const prevRow = visibleRows[i - 1];
+                    const nextRow = visibleRows[i + 1];
+
+                    const year = row.getAttribute('data-year');
+                    const month = row.getAttribute('data-month');
+                    const day = row.getAttribute('data-day');
+
+                    const prevYear = prevRow ? prevRow.getAttribute('data-year') : null;
+                    const prevMonth = prevRow ? prevRow.getAttribute('data-month') : null;
+                    const prevDay = prevRow ? prevRow.getAttribute('data-day') : null;
+
+                    const nextYear = nextRow ? nextRow.getAttribute('data-year') : null;
+                    const nextMonth = nextRow ? nextRow.getAttribute('data-month') : null;
+                    const nextDay = nextRow ? nextRow.getAttribute('data-day') : null;
+
+                    const showDate = !prevRow || 
+                                     prevYear !== year || 
+                                     prevMonth !== month || 
+                                     day !== "" || 
+                                     prevDay !== "";
+
+                    const isLastInMonth = !nextRow || 
+                                          nextYear !== year || 
+                                          nextMonth !== month || 
+                                          day !== "" || 
+                                          nextDay !== "";
+
+                    const dateEl = row.querySelector('.milestone-date');
+                    if (dateEl) {
+                        dateEl.style.visibility = showDate ? '' : 'hidden';
+                    }
+
+                    const contentEl = row.querySelector('.timeline-content');
+                    if (contentEl) {
+                        contentEl.style.borderBottom = isLastInMonth ? '' : 'none';
+                    }
+
+                    if (showDate) {
+                        row.classList.remove('same-month-row');
+                    } else {
+                        row.classList.add('same-month-row');
+                    }
+                });
+            };
+
+            // Setup hover highlight script
+            const highlight = (colIdxStr) => {
+                if (colIdxStr === null || colIdxStr === undefined || colIdxStr === "") return;
+                
+                const colIdx = parseInt(colIdxStr, 10);
+                const kind = columnKinds[colIdx];
+                if (!activeKinds.has(kind)) return;
+
+                wrapper.classList.add('has-highlight');
+
+                const id = columnIds[colIdx];
+                const parentId = columnParents[colIdx];
+
+                const columnsToHighlight = new Set();
+                columnsToHighlight.add(colIdx);
+
+                if (parentId) {
+                    columnIds.forEach((otherId, idx) => {
+                        if (otherId === parentId || columnParents[idx] === parentId) {
+                            columnsToHighlight.add(idx);
+                        }
+                    });
+                } else {
+                    columnIds.forEach((otherId, idx) => {
+                        if (columnParents[idx] === id) {
+                            columnsToHighlight.add(idx);
+                        }
+                    });
+                }
+
+                laneElements.forEach(el => {
+                    const c = parseInt(el.getAttribute('data-col-idx'), 10);
+                    if (columnsToHighlight.has(c)) {
+                        el.classList.add('active-highlight');
+                    }
+                });
+
+                rows.forEach(row => {
+                    const c = parseInt(row.getAttribute('data-col-idx'), 10);
+                    if (columnsToHighlight.has(c)) {
+                        row.classList.add('active-highlight');
+                    }
+                });
+
+                headers.forEach(h => {
+                    const c = parseInt(h.getAttribute('data-col-idx'), 10);
+                    if (columnsToHighlight.has(c)) {
+                        h.classList.add('active-highlight');
+                    }
+                });
+            };
+
+            const clearHighlight = () => {
+                wrapper.classList.remove('has-highlight');
+                laneElements.forEach(el => el.classList.remove('active-highlight'));
+                rows.forEach(row => row.classList.remove('active-highlight'));
+                headers.forEach(h => h.classList.remove('active-highlight'));
+            };
+
+            // Listen to hovers on rows
+            rows.forEach(row => {
+                row.addEventListener('mouseenter', () => {
+                    const colIdx = row.getAttribute('data-col-idx');
+                    highlight(colIdx);
+                });
+                row.addEventListener('mouseleave', clearHighlight);
+            });
+
+            // Listen to hovers on lane lines/dots/connectors directly
+            laneElements.forEach(el => {
+                el.addEventListener('mouseenter', (e) => {
+                    e.stopPropagation();
+                    const colIdx = el.getAttribute('data-col-idx');
+                    highlight(colIdx);
+                });
+                el.addEventListener('mouseleave', clearHighlight);
+            });
+
+            // Listen to hovers on column header tags directly
+            headers.forEach(h => {
+                h.addEventListener('mouseenter', () => {
+                    const colIdx = h.getAttribute('data-col-idx');
+                    highlight(colIdx);
+                });
+                h.addEventListener('mouseleave', clearHighlight);
+            });
+
+            // Setup filter chip click listeners
+            filterChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const kind = chip.getAttribute('data-kind');
+                    if (chip.classList.contains('active')) {
+                        // Prevent removing all filters (keep at least one active)
+                        if (activeKinds.size > 1) {
+                            chip.classList.remove('active');
+                            activeKinds.delete(kind);
+                        }
+                    } else {
+                        chip.classList.add('active');
+                        activeKinds.add(kind);
+                    }
+                    updateFilters();
+                });
+            });
+
+            // Initialize packed state on start
+            updateFilters();
+        })();
+    </script>
+</section>
+
+<style>
+    .timeline-section {
+        --accent: var(--md-sys-color-primary);
+        --accent-glow: var(--md-sys-color-primary-container);
+        --line-color: var(--md-sys-color-outline-variant);
+        --font-mono: var(--md-ref-typeface-mono);
+        
+        margin-top: 48px;
+        padding-bottom: 64px;
+    }
+
+    .timeline-header {
+        margin-bottom: 36px;
+    }
+
+    .timeline-title {
+        font-size: var(--font-headline-lg);
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin: 0 0 8px;
+        color: var(--md-sys-color-on-surface);
+    }
+
+    .timeline-subtitle {
+        margin: 0;
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: var(--font-body-md);
+    }
+
+    /* Filter Bar */
+    .timeline-filters {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+        padding-top: 16px;
+        border-top: 1px solid var(--md-sys-color-outline-variant);
+    }
+
+    .filter-label {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: var(--md-sys-color-on-surface-variant);
+        margin-right: 4px;
+    }
+
+    .filter-chip {
+        background: transparent;
+        border: 1px solid var(--md-sys-color-outline-variant);
+        color: var(--md-sys-color-on-surface-variant);
+        padding: 5px 12px;
+        border-radius: var(--md-sys-shape-corner-full);
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 200ms ease;
+    }
+
+    .filter-chip:hover {
+        background: var(--md-sys-color-surface-variant);
+        color: var(--md-sys-color-on-surface);
+    }
+
+    .filter-chip.active {
+        background: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        border-color: var(--md-sys-color-primary);
+    }
+
+    /* Header Row & Vertical Column Tags */
+    .timeline-row.headers-row {
+        min-height: 110px;
+        align-items: flex-end;
+    }
+
+    .timeline-lanes.header-lanes {
+        height: 100px;
+    }
+
+    .column-header {
+        position: absolute;
+        bottom: 0;
+        transform: translateX(-50%);
+        height: 100%;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        width: 24px;
+        left: calc(var(--active-col-idx, var(--col-idx)) * 24px + 12px);
+        transition: left 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease;
+    }
+
+    .column-header-text {
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        font-family: var(--font-mono);
+        font-size: 9px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--md-sys-color-on-surface-variant);
+        white-space: nowrap;
+        opacity: 0.5;
+        transition: opacity 200ms, color 200ms, font-weight 200ms;
+        cursor: help;
+        padding-bottom: 8px;
+    }
+
+    .timeline-content.header-content {
+        border-bottom: none !important;
+        padding: 0 16px;
+    }
+
+    /* Interactive highlights on column header tags */
+    .timeline-wrapper.has-highlight .column-header:not(.active-highlight) .column-header-text {
+        opacity: 0.15 !important;
+    }
+
+    .timeline-wrapper.has-highlight .column-header.active-highlight .column-header-text {
+        opacity: 1 !important;
+        color: var(--accent) !important;
+        font-weight: 700 !important;
+    }
+
+    /* Timeline Wrapper */
+    .timeline-wrapper {
+        display: flex;
+        flex-direction: column;
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    /* Interactive Track Highlighting */
+    .timeline-wrapper.has-highlight .lane-line:not(.active-highlight) {
+        opacity: 0.15 !important;
+    }
+    .timeline-wrapper.has-highlight .lane-connector:not(.active-highlight) {
+        opacity: 0.15 !important;
+    }
+    .timeline-wrapper.has-highlight .lane-dot:not(.active-highlight) {
+        opacity: 0.15 !important;
+        box-shadow: none !important;
+    }
+    .timeline-wrapper.has-highlight .timeline-content:not(.active-highlight .timeline-content) {
+        opacity: 0.25 !important;
+    }
+
+    .timeline-wrapper.has-highlight .lane-line.active-highlight {
+        background: var(--accent) !important;
+        opacity: 1 !important;
+        width: 3px !important;
+        z-index: 10 !important;
+    }
+    .timeline-wrapper.has-highlight .lane-dot.active-highlight {
+        transform: translate(-50%, -50%) scale(1.3) !important;
+        z-index: 12 !important;
+        box-shadow: 0 0 0 2px var(--md-sys-color-surface), 0 0 12px var(--accent) !important;
+    }
+    .timeline-wrapper.has-highlight .lane-connector.active-highlight {
+        height: 2.5px !important;
+        z-index: 11 !important;
+        opacity: 1 !important;
+    }
+    .timeline-wrapper.has-highlight .timeline-row.active-highlight .timeline-content {
+        background-color: var(--md-sys-color-surface-container-lowest) !important;
+        border-left: 2px solid var(--accent) !important;
+        padding-left: 14px !important; /* adjust for border-left */
+    }
+
+    .timeline-row {
+        display: flex;
+        align-items: stretch;
+        min-height: 72px;
+        position: relative;
+    }
+
+    .timeline-row.same-month-row {
+        min-height: 48px;
+    }
+
+    /* Lanes (Left Column) */
+    .timeline-lanes {
+        position: relative;
+        width: calc(24px * var(--active-total-columns, var(--total-columns)) + 16px);
+        flex-shrink: 0;
+        margin-right: 12px;
+        transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .lane-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--line-color);
+        opacity: 0.85;
+        left: calc(var(--active-col-idx, var(--col-idx)) * 24px + 11px);
+        z-index: 1;
+        cursor: help;
+        transition: left 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease, background-color 200ms;
+    }
+
+    /* Wider hover area for lane lines */
+    .lane-line::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: -8px;
+        right: -8px;
+        background: transparent;
+    }
+
+    .lane-line:hover {
+        background: var(--accent);
+        opacity: 1;
+    }
+
+    .lane-dot {
+        position: absolute;
+        top: 24px;
+        transform: translate(-50%, -50%);
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        border: 2px solid var(--accent);
+        box-shadow: 0 0 0 2px var(--md-sys-color-surface), 0 0 8px var(--accent);
+        z-index: 3;
+        left: calc(var(--active-col-idx, var(--col-idx)) * 24px + 12px);
+        cursor: help;
+        transition: left 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease, transform 200ms ease;
+    }
+
+    .lane-dot:hover {
+        transform: translate(-50%, -50%) scale(1.3);
+    }
+
+    .timeline-row.same-month-row .lane-dot {
+        top: 18px; /* Offset dot position in same-month rows to align with tighter text padding */
+    }
+
+    .lane-connector {
+        position: absolute;
+        top: 24px;
+        transform: translateY(-50%);
+        height: 1.5px;
+        background: linear-gradient(90deg, var(--accent) 0%, var(--line-color) 100%);
+        z-index: 2;
+        left: calc(var(--active-col-idx, var(--col-idx)) * 24px + 12px);
+        width: calc(100% - (var(--active-col-idx, var(--col-idx)) * 24px + 12px));
+        cursor: help;
+        transition: left 300ms cubic-bezier(0.4, 0, 0.2, 1), width 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease, height 200ms;
+    }
+
+    .lane-connector:hover {
+        height: 2.5px;
+    }
+
+    .timeline-row.same-month-row .lane-connector {
+        top: 18px; /* Offset connector line in same-month rows */
+    }
+
+    /* Milestone Content (Right Column) */
+    .timeline-content {
+        flex-grow: 1;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 6px;
+        border-bottom: 1px solid var(--md-sys-color-surface-container);
+        transition: background-color 200ms ease;
+    }
+
+    .timeline-row.same-month-row .timeline-content {
+        padding-top: 6px;
+        padding-bottom: 6px;
+    }
+
+    .timeline-row:hover .timeline-content {
+        background-color: var(--md-sys-color-surface-container-lowest);
+    }
+
+    .milestone-main {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .milestone-date {
+        font-family: var(--font-mono);
+        font-size: var(--font-label-md);
+        font-weight: 600;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+    }
+
+    .milestone-text {
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: var(--md-sys-color-on-surface);
+        line-height: 1.4;
+    }
+
+    .milestone-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 2px;
+    }
+
+    .milestone-context {
+        font-size: 11px;
+        color: var(--md-sys-color-on-surface-variant);
+        font-weight: 500;
+    }
+
+    .subtitle-text {
+        opacity: 0.8;
+    }
+
+    /* Tags */
+    .milestone-tags-wrapper {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .tag-badge {
+        font-family: var(--font-mono);
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--md-sys-color-on-secondary-container);
+        background: var(--md-sys-color-secondary-container);
+        padding: 1px 6px;
+        border-radius: var(--md-sys-shape-corner-xs);
+        border: 1px solid var(--md-sys-color-outline-variant);
+    }
+
+    /* Link Badges */
+    .milestone-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .milestone-links-wrapper {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .link-badge {
+        font-family: var(--font-mono);
+        font-size: 9px;
+        font-weight: 600;
+        color: var(--accent);
+        background: transparent;
+        padding: 1px 6px;
+        border-radius: var(--md-sys-shape-corner-xs);
+        border: 1px solid var(--accent);
+        text-decoration: none;
+        transition: background 200ms ease, color 200ms ease;
+        cursor: pointer;
+    }
+
+    .link-badge:hover {
+        background: var(--accent);
+        color: var(--md-sys-color-on-primary);
+    }
+
+    /* Responsive */
+    @media (max-width: 719px) {
+        .timeline-row.headers-row {
+            display: none !important;
+        }
+
+        .timeline-lanes {
+            /* Reduce spacing on mobile to leave enough room for content */
+            width: calc(12px * var(--active-total-columns, var(--total-columns)) + 12px);
+            margin-right: 8px;
+        }
+        
+        .lane-line {
+            width: 1.5px;
+            left: calc(var(--active-col-idx, var(--col-idx)) * 12px + 5px);
+        }
+
+        .lane-dot {
+            width: 6px;
+            height: 6px;
+            left: calc(var(--active-col-idx, var(--col-idx)) * 12px + 6px);
+        }
+
+        .lane-connector {
+            left: calc(var(--active-col-idx, var(--col-idx)) * 12px + 6px);
+            width: calc(100% - (var(--active-col-idx, var(--col-idx)) * 12px + 6px));
+        }
+
+        .milestone-main {
+            gap: 4px;
+            flex-direction: column;
+        }
+
+        .milestone-date {
+            font-size: var(--font-label-sm);
+        }
+
+        .milestone-text {
+            font-size: 0.9rem;
+        }
+
+        .timeline-content {
+            padding: 8px 8px;
+        }
+    }
+</style>

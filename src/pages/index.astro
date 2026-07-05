@@ -1,11 +1,328 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+import Layout from "../layouts/Layout.astro";
+import Hero from "../components/landing/Hero.astro";
+import Timeline from "../components/landing/Timeline.astro";
+import avatarMini from "../assets/avei.jpg";
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+const email = "muhammadabdulazizalghofari@gmail.com";
+const linkedin = "https://linkedin.com/in/avei";
+const github = "https://github.com/Avei20";
+const website = "https://avei.ovh";
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="Avei — Working timeline 2019 → present">
+    <header class="app-bar" id="app-bar">
+        <div class="app-bar-inner">
+            <a class="app-bar-brand" href="#top" aria-label="Avei home">
+                <img
+                    src={avatarMini.src}
+                    alt=""
+                    width="32"
+                    height="32"
+                    class="app-bar-avatar"
+                />
+                <span class="app-bar-name">Avei</span>
+            </a>
+            <nav class="app-bar-nav" aria-label="Primary links">
+                <a href={`mailto:${email}`}>Email</a>
+                <a href={github} rel="noopener noreferrer">GitHub</a>
+                <a href={linkedin} rel="noopener noreferrer">LinkedIn</a>
+                <a href={website} rel="noopener noreferrer">Website</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div id="top" class="hero-band">
+            <Hero
+                id="top"
+                email={email}
+                linkedin={linkedin}
+                github={github}
+                website={website}
+            />
+        </div>
+        <Timeline />
+    </main>
+
+    <script is:inline>
+        (() => {
+            const bar = document.getElementById("app-bar");
+            const onScroll = () => {
+                if (bar)
+                    bar.classList.toggle("is-scrolled", window.scrollY > 4);
+            };
+            window.addEventListener("scroll", onScroll, { passive: true });
+            onScroll();
+        })();
+    </script>
 </Layout>
+
+<style is:global>
+    /* ============================================================
+       M3 design tokens — minimalistic B/W palette.
+       Structure (type scale, shape scale, elevation, surface scale)
+       preserved. Only hue removed. Light theme + dark mode inverted.
+       ============================================================ */
+    :root {
+        --ink: #0a0a0a;
+        --ink-2: #1a1a1a;
+        --ink-3: #2a2a2a;
+        --mid: #525252;
+        --muted: #a3a3a3;
+        --line: #e5e5e5;
+        --line-2: #d4d4d4;
+        --paper: #ffffff;
+        --paper-2: #fafafa;
+        --paper-3: #f5f5f5;
+
+        --md-sys-color-primary: #0a0a0a;
+        --md-sys-color-on-primary: #ffffff;
+        --md-sys-color-primary-container: #e5e5e5;
+        --md-sys-color-on-primary-container: #0a0a0a;
+
+        --md-sys-color-secondary: #525252;
+        --md-sys-color-on-secondary: #ffffff;
+        --md-sys-color-secondary-container: #f5f5f5;
+        --md-sys-color-on-secondary-container: #0a0a0a;
+
+        --md-sys-color-tertiary: #404040;
+        --md-sys-color-on-tertiary: #ffffff;
+        --md-sys-color-tertiary-container: #f5f5f5;
+        --md-sys-color-on-tertiary-container: #0a0a0a;
+
+        --md-sys-color-error: #b91c1c;
+        --md-sys-color-on-error: #ffffff;
+
+        --md-sys-color-surface: #ffffff;
+        --md-sys-color-on-surface: #0a0a0a;
+        --md-sys-color-surface-variant: #f5f5f5;
+        --md-sys-color-on-surface-variant: #525252;
+        --md-sys-color-surface-container-lowest: #ffffff;
+        --md-sys-color-surface-container-low: #fafafa;
+        --md-sys-color-surface-container: #f5f5f5;
+        --md-sys-color-surface-container-high: #ededed;
+        --md-sys-color-surface-container-highest: #e5e5e5;
+
+        --md-sys-color-outline: #525252;
+        --md-sys-color-outline-variant: #e5e5e5;
+
+        --md-sys-shape-corner-none: 0;
+        --md-sys-shape-corner-xs: 4px;
+        --md-sys-shape-corner-sm: 8px;
+        --md-sys-shape-corner-md: 12px;
+        --md-sys-shape-corner-lg: 16px;
+        --md-sys-shape-corner-xl: 28px;
+        --md-sys-shape-corner-full: 9999px;
+
+        --md-sys-elevation-1:
+            0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 3px 1px rgb(0 0 0 / 0.07);
+        --md-sys-elevation-2:
+            0 1px 2px 0 rgb(0 0 0 / 0.06), 0 2px 6px 2px rgb(0 0 0 / 0.1);
+
+        --md-ref-typeface-brand:
+            "Roboto Flex", -apple-system, BlinkMacSystemFont, "Segoe UI",
+            Roboto, "Helvetica Neue", Arial, sans-serif;
+        --md-ref-typeface-plain:
+            "Roboto Flex", -apple-system, BlinkMacSystemFont, "Segoe UI",
+            Roboto, "Helvetica Neue", Arial, sans-serif;
+        --md-ref-typeface-mono:
+            "Roboto Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo,
+            Consolas, "Liberation Mono", monospace;
+
+        --font-display: clamp(2.25rem, 1.6rem + 3vw, 3rem);
+        --font-headline-lg: clamp(1.75rem, 1.3rem + 1.8vw, 2.25rem);
+        --font-headline-md: clamp(1.5rem, 1.2rem + 1.2vw, 1.75rem);
+        --font-title-lg: 1.375rem;
+        --font-title-md: 1rem;
+        --font-body-lg: 1.0625rem;
+        --font-body-md: 0.9375rem;
+        --font-label-lg: 0.875rem;
+        --font-label-md: 0.8125rem;
+        --font-label-sm: 0.75rem;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --ink: #f5f5f5;
+            --ink-2: #e5e5e5;
+            --ink-3: #d4d4d4;
+            --mid: #a3a3a3;
+            --muted: #525252;
+            --line: #2a2a2a;
+            --line-2: #1a1a1a;
+            --paper: #0a0a0a;
+            --paper-2: #141414;
+            --paper-3: #1a1a1a;
+
+            --md-sys-color-primary: #f5f5f5;
+            --md-sys-color-on-primary: #0a0a0a;
+            --md-sys-color-primary-container: #2a2a2a;
+            --md-sys-color-on-primary-container: #f5f5f5;
+
+            --md-sys-color-secondary: #a3a3a3;
+            --md-sys-color-on-secondary: #0a0a0a;
+            --md-sys-color-secondary-container: #1a1a1a;
+            --md-sys-color-on-secondary-container: #f5f5f5;
+
+            --md-sys-color-tertiary: #d4d4d4;
+            --md-sys-color-on-tertiary: #0a0a0a;
+            --md-sys-color-tertiary-container: #1a1a1a;
+            --md-sys-color-on-tertiary-container: #f5f5f5;
+
+            --md-sys-color-error: #f87171;
+            --md-sys-color-on-error: #0a0a0a;
+
+            --md-sys-color-surface: #0a0a0a;
+            --md-sys-color-on-surface: #f5f5f5;
+            --md-sys-color-surface-variant: #1a1a1a;
+            --md-sys-color-on-surface-variant: #a3a3a3;
+            --md-sys-color-surface-container-lowest: #000000;
+            --md-sys-color-surface-container-low: #141414;
+            --md-sys-color-surface-container: #1a1a1a;
+            --md-sys-color-surface-container-high: #2a2a2a;
+            --md-sys-color-surface-container-highest: #404040;
+
+            --md-sys-color-outline: #a3a3a3;
+            --md-sys-color-outline-variant: #2a2a2a;
+
+            --md-sys-elevation-1:
+                0 1px 2px 0 rgb(0 0 0 / 0.5), 0 1px 3px 1px rgb(0 0 0 / 0.4);
+            --md-sys-elevation-2:
+                0 1px 2px 0 rgb(0 0 0 / 0.5), 0 2px 6px 2px rgb(0 0 0 / 0.4);
+        }
+    }
+</style>
+
+<style>
+    /* ============================================================
+       Layout: app bar + main content + hero band.
+       Timeline visuals live in src/components/landing/Timeline.astro.
+       ============================================================ */
+    main {
+        background: var(--md-sys-color-surface);
+        color: var(--md-sys-color-on-surface);
+        font-family: var(--md-ref-typeface-plain);
+        font-size: var(--font-body-md);
+        line-height: 1.55;
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 1.5rem 1.5rem 4rem;
+    }
+
+    .hero-band {
+        padding: 1.5rem 0 2.5rem;
+    }
+
+    /* App bar */
+    .app-bar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--md-sys-color-surface);
+        border-bottom: 1px solid var(--md-sys-color-outline-variant);
+        transition:
+            box-shadow 200ms,
+            background-color 200ms;
+    }
+    .app-bar.is-scrolled {
+        box-shadow: var(--md-sys-elevation-1);
+    }
+    .app-bar-inner {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 12px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 24px;
+    }
+    .app-bar-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--ink);
+        text-decoration: none;
+        font-family: var(--md-ref-typeface-brand);
+        font-size: var(--font-title-md);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+    }
+    .app-bar-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--md-sys-shape-corner-full);
+        object-fit: cover;
+    }
+    .app-bar-nav {
+        display: flex;
+        gap: 4px;
+    }
+    .app-bar-nav a {
+        color: var(--md-sys-color-on-surface-variant);
+        padding: 8px 12px;
+        border-radius: var(--md-sys-shape-corner-full);
+        text-decoration: none;
+        font-family: var(--md-ref-typeface-brand);
+        font-size: var(--font-label-lg);
+        font-weight: 500;
+        position: relative;
+        transition:
+            background-color 200ms,
+            color 200ms;
+    }
+    .app-bar-nav a::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: currentColor;
+        opacity: 0;
+        transition: opacity 200ms;
+        pointer-events: none;
+    }
+    .app-bar-nav a:hover {
+        color: var(--ink);
+    }
+    .app-bar-nav a:hover::before {
+        opacity: 0.08;
+    }
+    .app-bar-nav a:active::before {
+        opacity: 0.12;
+    }
+
+    /* Focus + image defaults */
+    :global(a:focus-visible),
+    :global(button:focus-visible) {
+        outline: 3px solid var(--ink);
+        outline-offset: 2px;
+        border-radius: var(--md-sys-shape-corner-xs);
+    }
+
+    :global(img) {
+        max-width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    @media (min-width: 720px) {
+        main {
+            padding: 2rem 2rem 5rem;
+        }
+    }
+
+    @media (max-width: 719px) {
+        .app-bar-nav {
+            display: none;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        :global(*),
+        :global(*::before),
+        :global(*::after) {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+</style>
