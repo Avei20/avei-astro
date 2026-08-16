@@ -6,6 +6,8 @@ import sitemap from "@astrojs/sitemap";
 import vuetifyPlugin from "vite-plugin-vuetify";
 import { fileURLToPath } from "node:url";
 
+import cloudflare from "@astrojs/cloudflare";
+
 // Vuetify 4 + Astro 7 wiring. Two non-obvious requirements:
 //
 //  1. vite-plugin-vuetify must load AFTER @vitejs/plugin-vue. Astro applies user
@@ -55,12 +57,14 @@ const vuetify = () => ({
 // https://astro.build/config
 export default defineConfig({
   site: "https://avei.ovh",
+
   integrations: [
     vue({ appEntrypoint: "/src/_app" }),
     mdx(),
     sitemap(),
     vuetify(),
   ],
+
   vite: {
     resolve: {
       // graphology's ESM build imports Node's `events` module; shim it with
@@ -80,4 +84,6 @@ export default defineConfig({
       ],
     },
   },
+
+  adapter: cloudflare(),
 });
