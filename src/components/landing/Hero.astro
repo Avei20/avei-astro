@@ -15,13 +15,12 @@ interface Props {
 
 const {
     id,
-    name = "Muhammad Abdul Aziz Al-Ghofari",
-    role = "Backend engineer building cost-efficient cloud systems, observability, and AI products.",
+    name = "I am Avei",
+    role = "I offer self-hosted deployment services with the lowest cost possible.",
     location = "Jakarta, Indonesia",
     email = "muhammadabdulazizalghofari@gmail.com",
     linkedin = "https://linkedin.com/in/avei",
     github = "https://github.com/Avei20",
-    website = "https://avei.ovh",
     avatarSrc = avatar.src,
 } = Astro.props;
 ---
@@ -60,25 +59,6 @@ const {
             rel="noopener noreferrer"
             aria-label="LinkedIn profile">LinkedIn</a
         >
-        <a
-            class="btn btn-outlined"
-            href={website}
-            rel="noopener noreferrer"
-            aria-label="Personal website"
-        >
-            Website
-            <span
-                class="material-symbols-outlined icon-trail"
-                aria-hidden="true">open_in_new</span
-            >
-        </a>
-        <a class="btn btn-outlined" href="#timeline" aria-label="See timeline">
-            See timeline
-            <span
-                class="material-symbols-outlined icon-trail"
-                aria-hidden="true">arrow_downward</span
-            >
-        </a>
     </nav>
 </header>
 
@@ -114,11 +94,12 @@ const {
         margin: 0.5rem 0 0;
         max-width: 52ch;
     }
+
     .loc {
         color: var(--md-sys-color-on-surface-variant);
         font-family: var(--md-ref-typeface-mono);
         font-size: var(--font-label-md);
-        margin: 0.75rem 0 0;
+        margin: 0.5rem 0 0;
     }
     .cta-row {
         display: flex;

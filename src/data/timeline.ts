@@ -5,6 +5,7 @@ export interface Milestone {
   text: string;
   tags?: string[];
   links?: { label: string; url: string }[];
+  sortOrder?: number;
 }
 
 export interface TimelineEntry {
@@ -19,6 +20,8 @@ export interface TimelineEntry {
   summary?: string;
   milestones: Milestone[];
   parentId?: string;
+  logo?: string;
+  icon?: string;
 }
 
 // Canonical "now" for the Gantt. Hardcoded — system date in this environment is
@@ -49,6 +52,7 @@ export const timeline: TimelineEntry[] = [
     subtitle: 'Undergraduate in Computer Science · GPA 3.55 / 4.00',
     shortName: 'Binus',
     kind: 'education',
+    logo: 'binus',
     start: { year: 2019, month: 8 },
     end: { year: 2023, month: 10 },
     location: 'Jakarta, Indonesia',
@@ -66,6 +70,7 @@ export const timeline: TimelineEntry[] = [
     subtitle: 'Cohort Student · Machine Learning Path',
     shortName: 'Bangkit',
     kind: 'education',
+    logo: 'bangkit',
     start: { year: 2022, month: 2 },
     end: { year: 2022, month: 8 },
     location: 'Online',
@@ -87,6 +92,7 @@ export const timeline: TimelineEntry[] = [
     subtitle: 'Data Scientist Intern',
     shortName: 'Bank Indonesia',
     kind: 'work',
+    logo: 'bank-indonesia',
     start: { year: 2022, month: 8 },
     end: { year: 2022, month: 12 },
     location: 'Jakarta, Indonesia',
@@ -108,6 +114,7 @@ export const timeline: TimelineEntry[] = [
     subtitle: 'Certification Learning Path',
     shortName: 'GCP ACE',
     kind: 'education',
+    logo: 'gcp',
     start: { year: 2022, month: 10 },
     end: { year: 2022, month: 12 },
     location: 'Online',
@@ -146,7 +153,8 @@ export const timeline: TimelineEntry[] = [
     title: 'DroidJam Indonesia 2023',
     subtitle: 'Volunteer Registration Team',
     shortName: 'DroidJam',
-    kind: 'volunteer',
+    kind: 'community',
+    logo: 'droid',
     start: { year: 2023, month: 10 },
     end: { year: 2023, month: 10 },
     location: 'Jakarta, Indonesia',
@@ -163,6 +171,7 @@ export const timeline: TimelineEntry[] = [
     subtitle: 'Camp Scholar · Backend Path',
     shortName: 'GoTo DevCamp',
     kind: 'education',
+    logo: 'goto',
     start: { year: 2023, month: 12 },
     end: { year: 2023, month: 12 },
     location: 'Jakarta, Indonesia',
@@ -181,8 +190,9 @@ export const timeline: TimelineEntry[] = [
     subtitle: 'AWS User Group Jakarta Leader',
     shortName: 'AWS UG',
     kind: 'community',
+    logo: 'aws',
     start: { year: 2023, month: 12 },
-    end: { year: 2026, month: 6 },
+    end: 'present',
     location: 'Jakarta, Indonesia',
     summary: 'Led the AWS user community monthly meetups, workshops, and large community day ticketing systems.',
     milestones: [
@@ -226,6 +236,7 @@ export const timeline: TimelineEntry[] = [
     subtitle: 'Software Engineer — Backend',
     shortName: 'Bangunindo',
     kind: 'work',
+    logo: 'bangunindo',
     start: { year: 2024, month: 2 },
     end: { year: 2026, month: 2 },
     location: 'Jakarta / Remote',
@@ -235,9 +246,9 @@ export const timeline: TimelineEntry[] = [
       { date: { year: 2024, month: 5 }, text: 'Migrating PHP services into Golang using net/http, chi as routing and sqlx reducing infra cost by 400%', tags: ['Go', 'Chi', 'sqlx'] },
       { date: { year: 2024, month: 6 }, text: 'Implement caching system for Historical Data and the Latest Value using Redis to reduce latency by 96% on second hit.', tags: ['Redis'] },
       { date: { year: 2024, month: 9 }, text: 'Extract, Transform, and Load (ETL) CLI output from 1500 routers in 4G infrastructure nationwide using Go and Python.', tags: ['Go', 'Python'] },
-      { date: { year: 2025, month: 10 }, text: 'Migrating Kafka to Redpanda in GKE', tags: ['Redpanda', 'GKE'] },
+      { date: { year: 2025, month: 10 }, text: 'Migrating Kafka to Redpanda in GKE', tags: ['Redpanda', 'GKE'], sortOrder: 2 },
       { date: { year: 2026, month: 1 }, text: 'Migrated Monitoring and Observability from Sentry into OpenTelemetry stack (Grafana Tempo, Loki, Prometheus). The migrated project is used as standard for Monitoring and Observability all across Bangunindo.', tags: ['OpenTelemetry'] },
-      { date: { year: 2026, month: 2 }, text: 'End of Bangunindo Journey' }
+      { date: { year: 2026, month: 2 }, text: 'End of Bangunindo Journey', sortOrder: 2 }
     ]
   },
 
@@ -248,6 +259,7 @@ export const timeline: TimelineEntry[] = [
     subtitle: 'Backend & AI Engineer',
     shortName: 'Bliv.id',
     kind: 'work',
+    logo: 'bliv',
     start: { year: 2025, month: 4 },
     end: { year: 2025, month: 10 },
     location: 'Jakarta, Indonesia',
@@ -257,7 +269,7 @@ export const timeline: TimelineEntry[] = [
       { date: { year: 2025, month: 4 }, text: 'Entering Product team @Bliv.id' },
       { date: { year: 2025, month: 8 }, text: 'Creating dynamic LLM fallback on every model. Also using OpenLit to instrument LLM Request to make a better Observability and Prompting Tuning.', tags: ['OpenLit', 'LLMs'] },
       { date: { year: 2025, month: 9 }, text: 'Make an AI generated Data Pipeline on top Apache NiFi with Gemini.', tags: ['Apache NiFi', 'Gemini'] },
-      { date: { year: 2025, month: 10 }, text: 'End of Product Team Journey' }
+      { date: { year: 2025, month: 10 }, text: 'End of Product Team Journey', sortOrder: 1 }
     ]
   },
 
@@ -268,6 +280,7 @@ export const timeline: TimelineEntry[] = [
     subtitle: 'Co-Organizer / Volunteer',
     shortName: 'GDG Cloud',
     kind: 'community',
+    logo: 'gdg',
     start: { year: 2024, month: 4 },
     end: { year: 2025, month: 8 },
     location: 'Jakarta, Indonesia',
@@ -291,8 +304,9 @@ export const timeline: TimelineEntry[] = [
     subtitle: 'Co-Organizer / Volunteer',
     shortName: 'GDG Bogor',
     kind: 'community',
+    logo: 'gdg',
     start: { year: 2024, month: 4 },
-    end: { year: 2026, month: 4 },
+    end: 'present',
     location: 'Bogor, Indonesia',
     summary: 'Coordinated participant registration workflows and speaker presentations on low-cost GCP deployments.',
     milestones: [
@@ -345,19 +359,20 @@ export const timeline: TimelineEntry[] = [
     ]
   },
 
-  // ---------- 16. Tridorian (Work) ----------
+  // ---------- 16. tridorian (Work) ----------
   {
     id: 'tridorian',
-    title: 'Tridorian',
-    subtitle: 'Software Engineer L2 — Backend',
-    shortName: 'Tridorian',
+    title: 'tridorian',
+    subtitle: 'Software Engineer L2',
+    shortName: 'tridorian',
     kind: 'work',
+    logo: 'tridorian',
     start: { year: 2026, month: 2 },
     end: 'present',
     location: 'Jakarta, Indonesia (hybrid)',
-    summary: 'Backend engineering role on hybrid architecture.',
+    summary: 'Software engineering role on hybrid architecture.',
     milestones: [
-      { date: { year: 2026, month: 2 }, text: 'Begin of tridorian Journey as Software Engineer L2' }
+      { date: { year: 2026, month: 2 }, text: 'Begin of tridorian Journey as Software Engineer L2', sortOrder: 1 }
     ]
   }
 ];

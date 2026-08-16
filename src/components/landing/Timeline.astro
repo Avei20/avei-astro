@@ -1,5 +1,6 @@
 ---
 import { timeline, PRESENT, type TimelineEntry } from "../../data/timeline";
+import OrgIcon from "./OrgIcon.astro";
 
 interface Props {
     entries?: TimelineEntry[];
@@ -45,9 +46,16 @@ type MLabel = {
     kind: string;
     entryTitle: string;
     entrySubtitle: string;
+    entryLogo?: string;
+    entryIcon?: string;
+    sortOrder?: number;
+    isEntryPresent?: boolean;
 };
+
 const milestones: MLabel[] = sorted.flatMap((e) => {
     const col = (e as TimelineEntry & { column: number }).column;
+    const isPresent = e.end === "present";
+    const lastIdx = e.milestones.length - 1;
     return e.milestones.map((m, idx) => ({
         id: `${e.id}-m${idx}`,
         column: col,
@@ -59,10 +67,14 @@ const milestones: MLabel[] = sorted.flatMap((e) => {
         kind: e.kind,
         entryTitle: e.title,
         entrySubtitle: e.subtitle,
+        entryLogo: e.logo,
+        entryIcon: e.icon,
+        sortOrder: m.sortOrder,
+        isEntryPresent: isPresent && idx === lastIdx,
     }));
 });
 
-// Sort descending by month, but ascending by day within the same month
+// Sort descending by month, but ascending by day or sortOrder within the same month
 const sortedMilestones = [...milestones].sort((a, b) => {
     if (a.date.year !== b.date.year) {
         return b.date.year - a.date.year;
@@ -72,8 +84,8 @@ const sortedMilestones = [...milestones].sort((a, b) => {
     if (am !== bm) {
         return bm - am;
     }
-    const ad = a.date.day ?? 1;
-    const bd = b.date.day ?? 1;
+    const ad = a.date.day ?? a.sortOrder ?? 1;
+    const bd = b.date.day ?? b.sortOrder ?? 1;
     return ad - bd;
 });
 
@@ -94,7 +106,7 @@ const getActiveEntryAt = (colIndex: number, milestoneDate: { year: number; month
     });
 };
 // ---------- default initial active filters and packing helpers ----------
-const defaultKinds = ['work', 'project'];
+const defaultKinds = ['work'];
 const getInitialActiveColIdx = (colIndex: number): number => {
     let activeIdx = 0;
     for (let i = 0; i < colIndex; i++) {
@@ -111,20 +123,33 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
 ---
 
 <section class="timeline-section" id="timeline">
-    <header class="timeline-header">
-        <h2 class="timeline-title">My Journey</h2>
-        <p class="timeline-subtitle">
-            Parallel active tracks and milestones, ordered from current → 2019.
-        </p>
-        <div class="timeline-filters">
-            <span class="filter-label">Preference Filters:</span>
-            <button class="filter-chip active" data-kind="work">Professional Experience</button>
-            <button class="filter-chip active" data-kind="project">Side Projects</button>
-            <button class="filter-chip" data-kind="community">Community Leadership</button>
-            <button class="filter-chip" data-kind="education">Education & Camps</button>
-            <button class="filter-chip" data-kind="volunteer">Volunteering</button>
+    <div class="timeline-toolbar">
+        <div class="toolbar-brand">
+            <span class="toolbar-beacon" aria-hidden="true">
+                <span class="beacon-pulse"></span>
+                <span class="beacon-dot"></span>
+            </span>
+            <span class="toolbar-title">Trajectory & Experience</span>
         </div>
-    </header>
+        <div class="timeline-filters" role="tablist" aria-label="Filter experience by category">
+            <button class="filter-chip active" data-kind="work" role="tab" aria-selected="true">
+                <span class="filter-chip-dot"></span>
+                <span>Professional Experience</span>
+            </button>
+            <button class="filter-chip" data-kind="project" role="tab" aria-selected="false">
+                <span class="filter-chip-dot"></span>
+                <span>Side Projects</span>
+            </button>
+            <button class="filter-chip" data-kind="community" role="tab" aria-selected="false">
+                <span class="filter-chip-dot"></span>
+                <span>Community</span>
+            </button>
+            <button class="filter-chip" data-kind="education" role="tab" aria-selected="false">
+                <span class="filter-chip-dot"></span>
+                <span>Education</span>
+            </button>
+        </div>
+    </div>
 
     <div class="timeline-wrapper">
         <!-- Column Tags Header Row (Desktop Only) -->
@@ -134,12 +159,19 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
                     sorted.map((e, i) => {
                         const isActive = isColumnInitiallyActive(i);
                         const activeIdx = getInitialActiveColIdx(i);
+                        const isPresent = e.end === "present";
                         return (
                             <div 
-                                class="column-header" 
+                                class:list={["column-header", isPresent && "is-active-col"]} 
                                 style={`--col-idx: ${i}; --active-col-idx: ${activeIdx}; ${isActive ? "" : "opacity: 0; pointer-events: none;"}`} 
                                 data-col-idx={i}
                             >
+                                {(e.logo || e.icon) && (
+                                    <span class="column-header-icon" title={`${e.title} — ${e.subtitle}${isPresent ? " (Active Role)" : ""}`}>
+                                        <OrgIcon name={e.logo} icon={e.icon} size={14} />
+                                        {isPresent && <span class="col-live-dot" />}
+                                    </span>
+                                )}
                                 <span class="column-header-text" title={`${e.title} — ${e.subtitle}`}>{e.shortName}</span>
                             </div>
                         );
@@ -182,11 +214,13 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
                                     const activeTitle = activeEntry ? `${activeEntry.title} — ${activeEntry.subtitle}` : undefined;
                                     const isActive = isColumnInitiallyActive(i);
                                     const activeIdx = getInitialActiveColIdx(i);
+                                    const isEntryActive = activeEntry?.end === "present";
+                                    const isColPresent = sorted[i]?.end === "present";
                                     return (
                                         <>
                                             {activeEntry && (
                                                 <div 
-                                                    class="lane-line" 
+                                                    class:list={["lane-line", isEntryActive && "is-present-line"]} 
                                                     style={`--col-idx: ${i}; --active-col-idx: ${activeIdx}; ${isActive ? "" : "opacity: 0; pointer-events: none;"}`} 
                                                     title={activeTitle}
                                                     data-col-idx={i}
@@ -195,13 +229,13 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
                                             {i === m.column && (
                                                 <>
                                                     <div 
-                                                        class="lane-dot" 
+                                                        class:list={["lane-dot", isColPresent && "is-present-dot"]} 
                                                         style={`--col-idx: ${i}; --active-col-idx: ${activeIdx}; ${isActive ? "" : "opacity: 0; pointer-events: none;"}`} 
                                                         title={activeTitle}
                                                         data-col-idx={i}
                                                     />
                                                     <div 
-                                                        class="lane-connector" 
+                                                        class:list={["lane-connector", isColPresent && "is-present-connector"]} 
                                                         style={`--col-idx: ${i}; --active-col-idx: ${activeIdx}; ${isActive ? "" : "opacity: 0; pointer-events: none;"}`} 
                                                         title={activeTitle}
                                                         data-col-idx={i}
@@ -223,7 +257,10 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
                             
                             <div class="milestone-meta">
                                 <span class="milestone-context">
-                                    {m.entryTitle} · <span class="subtitle-text">{m.entrySubtitle}</span>
+                                    {(m.entryLogo || m.entryIcon) && (
+                                        <OrgIcon name={m.entryLogo} icon={m.entryIcon} size={15} class="context-org-icon" />
+                                    )}
+                                    <span class="context-title">{m.entryTitle}</span> · <span class="subtitle-text">{m.entrySubtitle}</span>
                                 </span>
                                 <div class="milestone-actions">
                                     {m.links.length > 0 && (
@@ -259,7 +296,7 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
             const lanesWrappers = document.querySelectorAll('.timeline-lanes');
             const filterChips = document.querySelectorAll('.filter-chip');
 
-            let activeKinds = new Set(['work', 'project']);
+            let activeKinds = new Set(['work']);
 
             const updateFilters = () => {
                 // 1. Determine active columns and compute packed indexes
@@ -372,7 +409,7 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
 
                 if (parentId) {
                     columnIds.forEach((otherId, idx) => {
-                        if (otherId === parentId || columnParents[idx] === parentId) {
+                        if (otherId === parentId) {
                             columnsToHighlight.add(idx);
                         }
                     });
@@ -472,69 +509,129 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
         --line-color: var(--md-sys-color-outline-variant);
         --font-mono: var(--md-ref-typeface-mono);
         
-        margin-top: 48px;
+        margin-top: 24px;
         padding-bottom: 64px;
     }
 
-    .timeline-header {
-        margin-bottom: 36px;
+    /* Trajectory Toolbar */
+    .timeline-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 12px 0 16px;
+        margin-bottom: 20px;
+        border-top: 1px solid var(--md-sys-color-outline-variant);
+        border-bottom: 1px solid var(--md-sys-color-outline-variant);
     }
 
-    .timeline-title {
-        font-size: var(--font-headline-lg);
-        font-weight: 600;
-        letter-spacing: -0.02em;
-        margin: 0 0 8px;
+    .toolbar-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
         color: var(--md-sys-color-on-surface);
     }
 
-    .timeline-subtitle {
-        margin: 0;
-        color: var(--md-sys-color-on-surface-variant);
-        font-size: var(--font-body-md);
+    .toolbar-beacon {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 8px;
+        height: 8px;
+        flex-shrink: 0;
+    }
+
+    .beacon-pulse {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: #10b981;
+        opacity: 0.75;
+        animation: beacon-pulse-anim 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    .beacon-dot {
+        position: relative;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #10b981;
+    }
+
+    @keyframes beacon-pulse-anim {
+        0% {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+        70% {
+            transform: scale(2.2);
+            opacity: 0;
+        }
+        100% {
+            transform: scale(2.2);
+            opacity: 0;
+        }
+    }
+
+    .toolbar-title {
+        font-family: var(--md-ref-typeface-brand);
+        font-size: var(--font-title-sm, 0.95rem);
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--md-sys-color-on-surface);
     }
 
     /* Filter Bar */
     .timeline-filters {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 8px;
         flex-wrap: wrap;
-        margin-top: 20px;
-        padding-top: 16px;
-        border-top: 1px solid var(--md-sys-color-outline-variant);
-    }
-
-    .filter-label {
-        font-family: var(--font-mono);
-        font-size: 10px;
-        text-transform: uppercase;
-        font-weight: 600;
-        color: var(--md-sys-color-on-surface-variant);
-        margin-right: 4px;
     }
 
     .filter-chip {
-        background: transparent;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--md-sys-color-surface);
         border: 1px solid var(--md-sys-color-outline-variant);
         color: var(--md-sys-color-on-surface-variant);
         padding: 5px 12px;
         border-radius: var(--md-sys-shape-corner-full);
-        font-size: 11px;
+        font-size: 11.5px;
         font-weight: 500;
         cursor: pointer;
-        transition: all 200ms ease;
+        transition: all 180ms ease;
+    }
+
+    .filter-chip-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.4;
+        transition: opacity 180ms ease, background-color 180ms ease;
     }
 
     .filter-chip:hover {
         background: var(--md-sys-color-surface-variant);
         color: var(--md-sys-color-on-surface);
+        border-color: var(--md-sys-color-outline);
     }
 
     .filter-chip.active {
-        background: var(--md-sys-color-primary);
-        color: var(--md-sys-color-on-primary);
-        border-color: var(--md-sys-color-primary);
+        background: var(--ink);
+        color: var(--paper);
+        border-color: var(--ink);
+        box-shadow: var(--md-sys-elevation-1);
+    }
+
+    .filter-chip.active .filter-chip-dot {
+        opacity: 1;
+        background: #10b981;
     }
 
     /* Header Row & Vertical Column Tags */
@@ -553,11 +650,43 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
         transform: translateX(-50%);
         height: 100%;
         display: flex;
-        align-items: flex-end;
-        justify-content: center;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
         width: 24px;
         left: calc(var(--active-col-idx, var(--col-idx)) * 24px + 12px);
         transition: left 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease;
+    }
+
+    .column-header-icon {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0.55;
+        transition: opacity 200ms, color 200ms, transform 200ms;
+        cursor: help;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .column-header.is-active-col .column-header-icon {
+        opacity: 0.85;
+    }
+
+    .column-header.is-active-col .column-header-text {
+        opacity: 0.85;
+    }
+
+    .col-live-dot {
+        position: absolute;
+        top: -2px;
+        right: -3px;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 4px #10b981;
     }
 
     .column-header-text {
@@ -585,10 +714,20 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
         opacity: 0.15 !important;
     }
 
+    .timeline-wrapper.has-highlight .column-header:not(.active-highlight) .column-header-icon {
+        opacity: 0.15 !important;
+    }
+
     .timeline-wrapper.has-highlight .column-header.active-highlight .column-header-text {
         opacity: 1 !important;
         color: var(--accent) !important;
         font-weight: 700 !important;
+    }
+
+    .timeline-wrapper.has-highlight .column-header.active-highlight .column-header-icon {
+        opacity: 1 !important;
+        color: var(--accent) !important;
+        transform: scale(1.15);
     }
 
     /* Timeline Wrapper */
@@ -685,6 +824,12 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
         opacity: 1;
     }
 
+    .lane-line.is-present-line {
+        background: #10b981;
+        opacity: 0.95;
+        box-shadow: 0 0 5px rgba(16, 185, 129, 0.45);
+    }
+
     .lane-dot {
         position: absolute;
         top: 24px;
@@ -703,6 +848,12 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
 
     .lane-dot:hover {
         transform: translate(-50%, -50%) scale(1.3);
+    }
+
+    .lane-dot.is-present-dot {
+        background: #10b981;
+        border-color: #10b981;
+        box-shadow: 0 0 0 2px var(--md-sys-color-surface), 0 0 8px #10b981;
     }
 
     .timeline-row.same-month-row .lane-dot {
@@ -726,6 +877,10 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
         height: 2.5px;
     }
 
+    .lane-connector.is-present-connector {
+        background: linear-gradient(90deg, #10b981 0%, var(--line-color) 100%);
+    }
+
     .timeline-row.same-month-row .lane-connector {
         top: 18px; /* Offset connector line in same-month rows */
     }
@@ -739,7 +894,7 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
         justify-content: center;
         gap: 6px;
         border-bottom: 1px solid var(--md-sys-color-surface-container);
-        transition: background-color 200ms ease;
+        transition: background-color 200ms ease, border-color 200ms ease;
     }
 
     .timeline-row.same-month-row .timeline-content {
@@ -754,7 +909,7 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
     .milestone-main {
         display: flex;
         align-items: baseline;
-        gap: 12px;
+        gap: 10px;
         flex-wrap: wrap;
     }
 
@@ -785,9 +940,29 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
     }
 
     .milestone-context {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         font-size: 11px;
         color: var(--md-sys-color-on-surface-variant);
         font-weight: 500;
+    }
+
+    .context-org-icon {
+        opacity: 0.85;
+        color: var(--md-sys-color-on-surface-variant);
+        flex-shrink: 0;
+    }
+
+    .timeline-row:hover .context-org-icon,
+    .timeline-row.active-highlight .context-org-icon {
+        opacity: 1;
+        color: var(--accent);
+    }
+
+    .context-title {
+        font-weight: 600;
+        color: var(--md-sys-color-on-surface);
     }
 
     .subtitle-text {
@@ -810,6 +985,12 @@ const initialActiveTotalColumns = sorted.filter(e => defaultKinds.includes(e.kin
         padding: 1px 6px;
         border-radius: var(--md-sys-shape-corner-xs);
         border: 1px solid var(--md-sys-color-outline-variant);
+        transition: border-color 200ms, color 200ms;
+    }
+
+    .tag-badge.tag-badge-active {
+        border-color: rgba(16, 185, 129, 0.35);
+        color: var(--md-sys-color-on-surface);
     }
 
     /* Link Badges */
